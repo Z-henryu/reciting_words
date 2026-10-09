@@ -296,28 +296,65 @@ cet6_word_dict = {
 
 word_list = [{"word":k,"mean":v} for k,v in cet6_word_dict.items()]
 
-# 初始化状态
-if "current" not in st.session_state:
-    st.session_state.current = random.choice(word_list)
-
 def check_answer(user_input, answer_text):
     user = user_input.strip().replace(" ","")
     right_answers = [i.strip() for i in answer_text.split("；")]
     return user in right_answers
 
+# 初始化标记：是否开始背诵
+if "start_study" not in st.session_state:
+    st.session_state.start_study = False
+if "total" not in st.session_state:
+    st.session_state.total = 0      # 总答题数
+if "correct" not in st.session_state:
+    st.session_state.correct = 0    # 答对数量
+
 st.title("六级背单词")
-cur = st.session_state.current
-st.subheader(f"单词：{cur['word']}")
-ans = st.text_input("请输入中文释义")
+# 判断是否已经点击开始背诵
+if not st.session_state.start_study:
+    st.write("点击下方按钮，开始背诵六级单词")
+    if st.button("开始背诵"):
+        st.session_state.start_study = True
+        st.session_state.total = 0
+        st.session_state.correct = 0
+        st.session_state.current = random.choice(word_list)
+        st.rerun()
+else:
+    cur = st.session_state.current
+    st.subheader(f"单词：{cur['word']}")
+    ans = st.text_input("请输入中文释义")
 
-if st.button("提交答案"):
-    if check_answer(ans, cur["mean"]):
-        st.success("✅行啊你小子,回答正确！")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        btn_submit = st.button("提交答案")
+    with col2:
+        btn_next = st.button("下一题")
+    with col3:
+        btn_end = st.button("结束答题")
+
+    if btn_submit:
+        st.session_state.total += 1
+        if check_answer(ans, cur["mean"]):
+            st.success("✅好样的，回答正确！")
+            st.session_state.correct += 1
+        else:
+            st.error(f"❌蒙的吧，补兑，正确答案：{cur['mean']}")
+
+    if btn_next:
+        st.session_state.current = random.choice(word_list)
+        st.rerun()
+
+    if btn_end:
+        st.session_state.start_study = False
+        st.rerun()
+
+    # 展示统计
+    st.divider()
+    total = st.session_state.total
+    right = st.session_state.correct
+    if total > 0:
+        accuracy = right / total
+        st.info(f"总答题数：{total}｜答对数：{right}｜正确率：{accuracy:.1%}")
     else:
-        st.error(f"❌补兑，蒙的吧，正确答案：{cur['mean']}")
-
-if st.button("下一题"):
-    st.session_state.current = random.choice(word_list)
-    st.rerun()   # 刷新页面清空输入框
-
+        st.info(f"总答题数：{total}｜答对数：{right}｜正确率：0.0%")
 
